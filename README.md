@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Gym Management
 
-## Getting Started
+Aplicación web universitaria de gestión de gimnasio con interfaz móvil basada en la captura de referencia. Usa Next.js App Router, TypeScript, Tailwind CSS, React Hook Form, Zod, Lucide React y Fetch API.
 
-First, run the development server:
+## Instalación local
+
+Requiere Node.js 20.9 o superior y npm.
 
 ```bash
+npm ci
+cp .env.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abre `http://localhost:3000`. En producción ejecuta `npm run build` y `npm start`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Las variables `MOCKAPI_PLANES_URL` y `MOCKAPI_MIEMBROS_URL` definen las URL completas de las dos colecciones. El archivo `.env.example` contiene las URL del proyecto. Los servicios las leen en el servidor y el navegador usa rutas relativas de la aplicación. `.env.local` queda ignorado por Git.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Uso
 
-## Learn More
+- **Planes** – en `/planes` puedes consultar los planes de MockAPI y pulsar uno activo para preseleccionarlo en el registro.
+- **Miembros** – en `/miembros` puedes buscar por nombre o celular y filtrar por estado, plan y horario. Cada tarjeta muestra el plan actual, incluso si cambió de nombre. La papelera solicita confirmación.
+- **Registro y edición** – usa el botón rojo **+** o el lápiz de una tarjeta. Introduce una URL HTTP(S) en **Agregar foto** para ver una vista previa. Guarda los datos para volver al listado. Los importes pendientes se calculan a partir del precio del plan y el monto pagado.
+- **Administración** – en `/planes/admin` puedes crear, editar y eliminar planes. La duración se introduce en días y los beneficios se escriben uno por línea. Un plan con miembros asociados debe reasignarse antes de poder eliminarlo.
 
-To learn more about Next.js, take a look at the following resources:
+## Arquitectura
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```text
+src/
+  app/          Páginas, estilos globales, manifest y rutas internas
+  components/
+    atoms/      Controles, logo y avatar
+    molecules/  Tarjetas, filtros, campos y estados de recursos
+    organisms/  Cabecera, navegación, cuadrículas y formularios
+    templates/  Composición de las pantallas
+  services/     Servicios independientes de planes y miembros
+  types/        Modelos internos
+  schemas/      Validación Zod de formularios y respuestas
+  hooks/        Estado de solicitudes y reintentos
+  lib/          Clientes HTTP y respuestas de rutas
+  utils/        Filtros, fechas y cálculo de saldo
+  constants/    Opciones de horario y pago
+tests/          Pruebas Playwright y servidor MockAPI simulado
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Las colecciones internas `/api/planes` y `/api/miembros` ofrecen GET y POST. Sus rutas `/[id]` ofrecen GET, PUT y DELETE. El servidor normaliza `name` o `nombre` a `nombre`, valida los beneficios y relaciona miembros con planes por IDs de cadena. Comprueba números de miembro duplicados, planes inexistentes y dependencias antes de eliminar un plan. MockAPI no ofrece transacciones entre sus dos proyectos. Las escrituras iniciadas por una misma instancia de la aplicación se serializan.
 
-## Deploy on Vercel
+## Verificación
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run typecheck
+npm run lint
+npm run build
+npx playwright install chromium
+npm test
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Playwright inicia la compilación de producción y un servidor MockAPI simulado en puertos locales. Las pruebas de escritura se ejecutan exclusivamente en ese servidor. Para comprobar las dos conexiones reales sin modificar datos, inicia la aplicación con `.env.local` y consulta ambas rutas mediante GET.
+
+## PWA
+
+En un navegador compatible en Android, abre la aplicación mediante HTTPS y usa **Instalar aplicación** o **Añadir a pantalla de inicio**. El manifest define los iconos, el tema y el modo standalone. El CRUD requiere conexión y las rutas internas se devuelven con `Cache-Control: private, no-store`.
+
+Los nombres, beneficios y estados que se muestran dependen del contenido de MockAPI. Si todos los planes están inactivos, activa uno desde `/planes/admin` para habilitar el registro.
+
+La configuración corresponde a una demo universitaria sin autenticación. Usa datos de prueba y restringe el acceso a la aplicación y a las colecciones antes de utilizar datos personales reales.
